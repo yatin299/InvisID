@@ -1,91 +1,139 @@
-# InvisID - Invisible Watermarking System for Employee Photos
+# InvisID - Leak Attribution System for Sensitive Images
+## Trace Leaked Product Designs Back to the Source Employee
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-00a393.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A production-grade invisible watermarking system that combines **DWT+DCT steganography** with **AES-256-GCM encryption** to protect employee photos. Features a comprehensive **Attack Simulation Dashboard** that tests watermark robustness against 50+ attack scenarios.
-
-**Live Demo:** [Coming Soon]  
-**Documentation:** See [AGENTS.md](./AGENTS.md) for detailed project context
+InvisID is a **leak attribution system** that traces leaked sensitive images back to the source employee using invisible watermarking.
 
 ---
 
-## Overview
+## The Problem
 
-InvisID embeds encrypted employee IDs directly into images using frequency-domain steganography. Unlike visible watermarks, these are mathematically invisible (PSNR > 40 dB) while remaining extractable even after image modifications.
+Your company shares sensitive product designs internally. If an image leaks to the press or competitors, how do you find the source?
+
+## The Solution: InvisID
+
+InvisID traces leaks by embedding a unique, encrypted Employee ID into images **at the moment an employee downloads them**. If that image later surfaces externally, scan it to decode the watermark and identify the leaker.
+
+### How It Works
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  1. ADMIN UPLOADS                                                           │
+│     Company uploads sensitive product design images                          │
+│                                                                              │
+│  2. EMPLOYEE DOWNLOADS                                                      │
+│     Employee requests to download image                                      │
+│     ↓                                                                       │
+│     System invisibly embeds their unique Employee ID                         │
+│     ↓                                                                       │
+│     Employee receives watermarked image                                      │
+│                                                                              │
+│  3. IMAGE LEAKS                                                             │
+│     Leaked image found on social media/press                                 │
+│                                                                              │
+│  4. TRACE SOURCE                                                            │
+│     Admin uploads leaked image → System extracts ID → Identifies leaker       │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Key Features
 
 🔐 **Military-Grade Security**
-- AES-256-GCM encryption with authentication
-- 32-byte encryption keys
-- Tamper-evident watermarks
+- AES-256-GCM encryption with PBKDF2 key derivation
+- API Key authentication (admin + employee)
+- Cryptographically chained audit logs (tamper-evident)
+- Rate limiting (10 req/min)
 
 🎯 **Research-Grade Steganography**
-- DWT+DCT hybrid algorithm (more robust than pure DCT)
-- Uses `invisible-watermark` library (2,000+ production users)
-- Survives JPEG compression, rotation, and noise
-
-📊 **Attack Simulation Dashboard**
-- Test against 50+ attack scenarios
-- Visual confidence scoring
-- Robustness heatmaps
-- Export CSV/PDF reports
+- DWT-DCT-SVD hybrid algorithm (more robust than basic DWT+DCT)
+- Adaptive strength based on image complexity
+- Survives JPEG compression, noise, basic filtering
+- DWT+DCT hybrid algorithm via `invisible-watermark` library
+- Survives JPEG compression, noise
+- Attack Simulation Dashboard (50+ scenarios)
 
 🌐 **Complete Web Application**
 - FastAPI backend with auto-generated docs
-- Jinja2 templating
-- Admin dashboard with audit logging
-- Responsive UI
+- Admin dashboard for uploads and investigation
+- Employee download portal
+- Audit log viewer
 
 ---
 
 ## How It Works
 
+### When Employee Downloads an Image:
 ```
-Employee ID: "EMP-2024-007"
-    ↓
-AES-256-GCM Encryption
-    ↓
-Encrypted Payload (40 bytes)
-    ↓
-DWT+DCT Steganography Embedding
-    ↓
-Watermarked Image (visually identical)
+Employee requests download
+        │
+        ▼
+Auth verifies employee (from API key)
+        │
+        ▼
+AES-256-GCM Encryption (encrypts Employee ID)
+        │
+        ▼
+DWT+DCT Steganography (embeds encrypted ID into image)
+        │
+        ▼
+Employee receives watermarked image
+        │
+        ▼
+AUDIT LOG: "EMP-007 downloaded design_v2.png at 2026-02-22 10:30:00"
 ```
 
-**Extraction Process:**
+### When Investigating a Leak:
 ```
-Watermarked Image
-    ↓
-DWT+DCT Steganography Extraction
-    ↓
-Encrypted Payload
-    ↓
-AES-256-GCM Decryption
-    ↓
-Employee ID: "EMP-2024-007"
+Company finds leaked image online
+        │
+        ▼
+Admin uploads to InvisID system
+        │
+        ▼
+DWT+DCT Extraction (extracts hidden data)
+        │
+        ▼
+AES-256-GCM Decryption (reveals Employee ID)
+        │
+        ▼
+"Employee ID: EMP-007"
+        │
+        ▼
+Cross-reference with audit logs to confirm
 ```
+
+### Scope & Limitations
+
+**In Scope:**
+- Digital data exfiltration (email, USB, cloud upload)
+- JPEG/PNG compression attacks (Quality 50+)
+- Gaussian noise and basic image filtering
+- Accidental sharing and casual leaks
+
+**Out of Scope:**
+- Screen capture / screenshot attacks
+- Physical photography of screens (Analog Hole)
+- Severe cropping (>30%)
+- Print-scan attacks
+- AI-based adversarial watermark removal
+
+**Why Invisible?**
+Unlike visible watermarks that alert attackers to their presence, InvisID's invisible watermark operates covertly. Employees don't know tracking data is embedded, eliminating the motivation to remove it. This addresses accidental sharing and casual social media posting.
 
 ---
 
 ## Tech Stack
 
-### Core Technologies
 | Technology | Purpose |
 |------------|---------|
 | **FastAPI** | Modern web framework with auto-docs |
 | **invisible-watermark** | DWT+DCT steganography library |
 | **PyCryptodome** | AES-256-GCM encryption |
 | **Pillow** | Image processing |
-| **Jinja2** | HTML templating |
-| **UV** | Modern Python package management |
-
-### Development Tools
-- **pytest** - Testing framework
-- **Uvicorn** - ASGI server
-- **Windows 10/11** - Primary development OS
+| **UV** | Python package management |
 
 ---
 
@@ -93,13 +141,12 @@ Employee ID: "EMP-2024-007"
 
 ### Prerequisites
 - Python 3.11+
-- Windows 10/11 (recommended)
 - UV package manager
 
 ### Setup
 
 ```bash
-# 1. Install UV (if not already installed)
+# 1. Install UV
 pip install uv
 
 # 2. Clone the repository
@@ -111,7 +158,6 @@ uv sync
 
 # 4. Set up environment variables
 copy .env.example .env
-# Edit .env with your settings
 
 # 5. Run the application
 uv run uvicorn app.main:app --reload
@@ -121,14 +167,18 @@ The application will be available at `http://localhost:8000`
 
 ### Environment Variables
 
-Create a `.env` file:
-
 ```env
-# Admin password for dashboard
-ADMIN_PASSWORD=your-secure-password
+# Admin API key (for security team)
+ADMIN_API_KEY=your-admin-key
 
-# 32-byte encryption key (generate with: openssl rand -base64 32)
-ENCRYPTION_KEY=your-base64-encoded-key
+# Employee API key (for employees)
+EMPLOYEE_API_KEY=your-employee-key
+
+# Master secret for PBKDF2 key derivation (not the actual encryption key)
+MASTER_SECRET=your-root-secret-minimum-32-chars
+
+# Unique salt per deployment (generate with: openssl rand -hex 16)
+SALT=your-unique-salt
 
 # Debug mode
 DEBUG=false
@@ -137,136 +187,117 @@ DEBUG=false
 LOG_LEVEL=INFO
 ```
 
+**Security Note:** We store a master secret, not the actual encryption key. The AES-256 key is derived at runtime using PBKDF2 with 100,000 iterations. This prevents key compromise from static file leaks.
+
 **Never commit `.env` to git!**
 
 ---
 
 ## Usage
 
-### Web Interface
+### Admin Workflow (Security Team)
 
-1. **Watermark an Image:**
-   - Go to `/upload`
-   - Upload PNG/JPEG image
-   - Enter employee ID (e.g., "EMP-2024-007")
-   - Download watermarked image
+1. **Upload Master Images:**
+   - POST to `/api/admin/upload`
+   - Upload sensitive product design images
 
-2. **Extract Watermark:**
-   - Go to `/reveal`
-   - Upload watermarked image
-   - View decrypted employee ID
+2. **View Download History:**
+   - GET `/api/admin/logs`
+   - See which employee downloaded which image and when
 
-3. **Attack Simulation:**
-   - Go to `/attack`
-   - Upload watermarked image
-   - Run attack battery (50+ scenarios)
-   - View confidence scores and heatmaps
-   - Export results
+3. **Investigate a Leak:**
+   - POST `/api/investigate`
+   - Upload the leaked image
+   - Get decrypted employee ID
 
-### API Endpoints
+### Employee Workflow
+
+1. **List Available Images:**
+   - GET `/api/images`
+
+2. **Download:**
+   - GET `/api/images/{id}/download`
+   - Receives watermarked image automatically
+
+---
+
+## API Endpoints
+
+### Admin Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Home page |
-| `/upload` | GET/POST | Watermark upload form |
-| `/reveal` | GET/POST | Extract watermark form |
-| `/attack` | GET | Attack simulation dashboard |
-| `/api/v1/watermark` | POST | Create watermark (API) |
-| `/api/v1/reveal` | POST | Extract watermark (API) |
-| `/api/v1/attack/run` | POST | Run attack simulation |
+| `/api/admin/upload` | POST | Upload master image |
+| `/api/admin/images` | GET | List available images |
+| `/api/admin/images/{id}` | DELETE | Delete image |
+| `/api/admin/logs` | GET | View download history |
+| `/api/investigate` | POST | Extract ID from leaked image |
+
+### Employee Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/images` | GET | List available images |
+| `/api/images/{id}/download` | GET | Download with watermark embed |
+
+### Attack Simulation
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/attack/run` | POST | Run attack simulation |
+
+### Health
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
 | `/docs` | GET | Interactive API documentation |
 
 ### API Example
 
 ```bash
-# Create watermark
-curl -X POST "http://localhost:8000/api/v1/watermark" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@employee.png" \
-  -F "employee_id=EMP-2024-007" \
+# Download watermarked image (employee)
+curl -X GET "http://localhost:8000/api/images/img_001/download" \
+  -H "X-API-Key: your-employee-key" \
   --output watermarked.png
 
-# Extract watermark
-curl -X POST "http://localhost:8000/api/v1/reveal" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@watermarked.png"
+# Investigate a leak (admin)
+curl -X POST "http://localhost:8000/api/investigate" \
+  -H "X-API-Key: your-admin-key" \
+  -F "file=@leaked.png"
 ```
-
----
-
-## Attack Simulation Dashboard
-
-The Attack Simulation Dashboard is our key differentiating feature that demonstrates deep algorithm understanding.
-
-### Attack Categories
-
-**Compression Attacks (10 scenarios):**
-- JPEG quality: 10, 30, 50, 70, 90
-- WebP compression
-- PNG compression levels
-
-**Geometric Attacks (12 scenarios):**
-- Rotation: 1°, 5°, 15°, 30°, 45°
-- Scaling: 50%, 75%, 125%, 150%, 200%
-- Cropping: 5%, 10%, 15%, 20%
-
-**Noise Attacks (9 scenarios):**
-- Gaussian noise: σ = 0.01, 0.05, 0.1
-- Salt & Pepper: 0.01, 0.05, 0.1 density
-- Speckle noise: 0.01, 0.05, 0.1
-
-**Filtering Attacks (12 scenarios):**
-- Gaussian blur, median filter, sharpening
-- Contrast adjustment: ±20%, ±40%
-- Brightness adjustment: ±20%, ±40%
-
-**Combined Attacks (8 scenarios):**
-- JPEG 50% + Rotation 15°
-- Blur + Noise combinations
-- Multiple sequential attacks
-
-### Dashboard Features
-
-- 📊 **Visual Confidence Scoring** (0-100%)
-- 🔥 **Robustness Heatmap** (survives/fails visualization)
-- 📈 **Comparative Analysis Charts**
-- 📄 **Export Reports** (CSV + PDF)
-- ⚡ **Real-time Results** (progressive loading)
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────┐
-│   Web Browser   │
-└────────┬────────┘
-         │ HTTP
-         ▼
-┌─────────────────┐
-│    FastAPI      │
-│   (Python 3.11) │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-┌────────┐ ┌──────────────┐
-│ Jinja2 │ │ API Endpoints│
-│Templates│ └──────┬───────┘
-└────────┘        │
-                  ▼
-    ┌─────────────┼─────────────┐
-    ▼             ▼             ▼
-┌─────────┐ ┌──────────┐ ┌─────────────┐
-│Watermark│ │  Attack  │ │   Crypto    │
-│ Module  │ │Simulator │ │  (AES-GCM)  │
-└────┬────┘ └────┬─────┘ └──────┬──────┘
-     │           │              │
-     ▼           ▼              ▼
-┌──────────────────────────────────────┐
-│   invisible-watermark Library        │
-│   (DWT+DCT Steganography)            │
-└──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENTS                                            │
+│   ┌──────────────────┐                      ┌──────────────────┐         │
+│   │  Admin Browser   │                      │ Employee Browser  │         │
+│   └────────┬─────────┘                      └────────┬─────────┘         │
+│            │ HTTP + API Key                           │ HTTP + API Key    │
+└────────────┼──────────────────────────────────────────┼───────────────────┘
+             │                                            │
+             ▼                                            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         FASTAPI BACKEND                                     │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                      SECURITY LAYER                                    │  │
+│  │  API Key Auth  │  Rate Limiter  │  Input Validator  │  Headers      │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                      CORE SERVICES                                     │  │
+│  │  Auth Service  │  Image Service │  Stego Service  │  Audit Service  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+             │                                            │
+             ▼                                            ▼
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│  Master Images  │   │   Audit Logs   │   │   Config       │
+│   (storage/)    │   │   (logs.json)  │   │   (.env)       │
+└─────────────────┘   └─────────────────┘   └─────────────────┘
 ```
 
 ---
@@ -274,44 +305,89 @@ The Attack Simulation Dashboard is our key differentiating feature that demonstr
 ## Project Structure
 
 ```
-invisible-watermark/
-├── app/                          # FastAPI application
-│   ├── main.py                  # App entry point
-│   ├── config.py                # Settings
-│   ├── dependencies.py          # Dependency injection
-│   ├── routers/                 # API endpoints
-│   │   ├── watermark.py         # Watermark creation
-│   │   ├── reveal.py            # Watermark extraction
-│   │   └── attack.py            # Attack simulation
-│   ├── templates/               # Jinja2 HTML templates
-│   │   ├── base.html
-│   │   ├── upload.html
-│   │   ├── reveal.html
-│   │   └── attack_dashboard.html
-│   └── static/                  # CSS/JS assets
-│       ├── css/
-│       └── js/
-├── stego/                        # Steganography module
-│   ├── __init__.py
-│   ├── watermark_core.py        # Library wrapper
-│   └── attack_simulator.py      # Attack scenarios
-├── crypto/                       # Encryption module
-│   ├── __init__.py
-│   └── aes_gcm.py               # AES-256-GCM
-├── tests/                        # Test files
-│   ├── test_watermark.py
-│   └── test_crypto.py
+invisid/
+├── app/
+│   ├── main.py                    # FastAPI app
+│   ├── config.py                  # Settings
+│   ├── dependencies/              # Auth, rate limiting
+│   ├── middleware/                # Security headers
+│   ├── routers/                   # API endpoints
+│   │   ├── admin.py              # Admin endpoints
+│   │   ├── images.py             # Image endpoints
+│   │   ├── investigate.py        # Leak investigation
+│   │   └── attack.py             # Attack simulation
+│   ├── services/                  # Business logic
+│   │   ├── auth_service.py
+│   │   ├── image_service.py
+│   │   ├── stego_service.py
+│   │   ├── crypto_service.py
+│   │   └── audit_service.py
+│   ├── models/                    # Pydantic schemas
+│   └── utils/                     # File validation
+├── stego/                         # Watermarking module
+├── crypto/                        # Encryption module
+├── storage/                       # Image storage
+│   ├── master/                   # Original images
+│   └── temp/                     # Temporary files
 ├── logs/                         # Audit logs
-│   └── activity.json
-├── pyproject.toml               # UV dependencies
-├── uv.lock                      # Locked versions
-├── .python-version              # Python 3.11
-├── .env.example                 # Environment template
-├── .env                         # Environment variables (gitignored)
-├── AGENTS.md                    # Project documentation
-├── EXECUTION_PLAN.md            # Implementation details
-└── README.md                    # This file
+├── tests/                        # Test files
+├── requirements.txt
+├── pyproject.toml
+├── .env.example
+└── README.md
 ```
+
+---
+
+## Security (SSDLC + STRIDE)
+
+This project follows **Secure Software Development Lifecycle** principles:
+
+- **Threat Modeling**: STRIDE framework for identifying security risks
+- **Secure Coding**: Input validation, authentication, audit logging
+- **Security Testing**: Bandit, pip-audit, Gitleaks in CI pipeline
+
+### Key Security Features
+
+| Feature | Implementation |
+|---------|----------------|
+| **Key Derivation** | PBKDF2 (100K iterations) - key derived at runtime |
+| **Audit Logs** | Cryptographically chained + external anchor (tamper-evident) |
+| **Encryption** | AES-256-GCM with PBKDF2 key derivation |
+| **Key Management** | Separation of Secrets + Key Epochs (30-day rotation) |
+| **Authentication** | API Key-based (admin + employee roles) |
+| **Rate Limiting** | 10 requests/minute per API key |
+
+### Authentication
+
+All endpoints require `X-API-Key` header:
+- Admin API key for uploads, logs, investigation
+- Employee API key for downloads
+
+### Key Security Features
+
+| Feature | Implementation |
+|---------|----------------|
+| **PBKDF2 Key Derivation** | Master secret from .env → derives AES-256 key at runtime |
+| **Separation of Secrets** | Master secret (`.env`) + unique salt per watermark (database) |
+| **Key Epochs** | 30-day rotation - compromised epoch can't decrypt old watermarks |
+| **Log Chaining** | Each log hashes previous entry - tampering breaks chain |
+| **External Anchor** | Daily root hash published to WORM store (Gist/S3) |
+
+### Why PBKDF2 + Separation?
+
+> "An attacker who steals `.env` gets a useless Master Secret. An attacker who steals the database gets useless Salts. They must breach BOTH to attempt decryption."
+
+### Why Log Chaining + External Anchor?
+
+> "A rogue admin could delete all logs and rewrite history. Our daily cron job publishes the root hash to an immutable external store. If anyone alters historical logs, the chain breaks and won't match the external anchor."
+
+### Privacy
+
+This tool monitors employee activity. In production:
+- 90-day data retention policy
+- Explicit employee monitoring disclosure required
+- Crypto-shredding after retention period
 
 ---
 
@@ -320,117 +396,31 @@ invisible-watermark/
 ### Running Tests
 
 ```bash
-# Run all tests
 uv run pytest
-
-# Run with verbose output
 uv run pytest -v
-
-# Run specific test file
-uv run pytest tests/test_watermark.py
 ```
 
-### Development Workflow
+### Running the App
 
 ```bash
-# 1. Make changes
-# 2. Update dependencies if needed
-uv lock
-
-# 3. Run tests
-uv run pytest
-
-# 4. Start development server
 uv run uvicorn app.main:app --reload
-
-# 5. Commit changes
-git add .
-git commit -m "feat: description"
-git push origin main
-```
-
-### Adding Dependencies
-
-```bash
-# Add production dependency
-uv add package-name
-
-# Add development dependency
-uv add --dev package-name
-
-# Lock dependencies
-uv lock
 ```
 
 ---
 
-## Success Metrics
+## Demo Showcases
 
-- ✅ **Extraction Success Rate:** >95%
-- ✅ **PSNR:** >40 dB (mathematically invisible)
-- ✅ **Attack Scenarios:** 50+ tested
-- ✅ **Encryption:** AES-256-GCM authenticated
-- ✅ **Web Application:** Full-featured with admin dashboard
+### Leak Investigation Demo
+> "Someone leaked our product design on Twitter. We take that image, upload it to InvisID... and it extracts: Employee ID EMP-007. We check our logs and confirm: EMP-007 downloaded this file yesterday at 10:30 AM. Case closed."
 
----
-
-## Why This Approach?
-
-### Why DWT+DCT over Pure DCT?
-- More robust against compression attacks
-- Multi-resolution analysis + frequency domain hiding
-- Current research standard
-- Survives transformations better
-
-### Why Use a Library?
-- `invisible-watermark`: 2,000+ production users, 100% reliability
-- Saves 6-8 weeks of algorithm debugging
-- Team focuses on security layers and attack simulation research
-- Professional engineering decision
-
-### Why Attack Simulation?
-- Demonstrates deep algorithm understanding
-- Shows exactly where watermark survives/fails
-- Research-level contribution
-- Perfect for technical demonstrations
-
----
-
-## Project Highlights
-
-### Key Capabilities
-- **Complete web application** with 50+ attack scenarios
-- **Research-grade algorithms**: DWT+DCT steganography + AES-256-GCM encryption
-- **Live demonstration**: Embed → Attack → Extract workflow
-
-### Demo Showcase
-**Attack Resilience Demo:**  
-"Watch as I compress this image to 10% JPEG quality, rotate it 15 degrees, and add Gaussian noise... [runs attack] ...our system still extracts the watermark with 87% confidence."
-
----
-
-## Team
-
-**4 Computer Science Students (3rd Year)**
-
-| Role | Responsibility |
-|------|---------------|
-| **Steganographer** | DWT+DCT integration, attack simulation |
-| **Cryptographer** | AES-256-GCM, security architecture |
-| **API Developer** | FastAPI backend, endpoints |
-| **Frontend Developer** | UI/UX, dashboard visualization |
-
-**Timeline:** 8 Weeks (12 team-hours/week)  
-**Tech Stack:** FastAPI, invisible-watermark, PyCryptodome, UV  
-**Platform:** Windows 10/11
+### Attack Resilience Demo
+> "Watch as I compress this image to 10% JPEG quality, add Gaussian noise... [runs attack] ...our system still extracts the watermark with 87% confidence."
 
 ---
 
 ## Documentation
 
-- **[AGENTS.md](./AGENTS.md)** - Project context and AI agent instructions
-- **[EXECUTION_PLAN.md](./EXECUTION_PLAN.md)** - Detailed implementation plan
-- **[PLAN_B_LIBRARY_HYBRID.md](./PLAN_B_LIBRARY_HYBRID.md)** - Technical details
+- **[FINAL_PLAN.md](./FINAL_PLAN.md)** - Complete implementation plan
 - **API Docs** - Available at `/docs` when running the app
 
 ---
@@ -443,15 +433,5 @@ MIT License - See [LICENSE](LICENSE) for details
 
 ## Acknowledgments
 
-- **invisible-watermark** library by [ShieldMnt](https://github.com/ShieldMnt/invisible-watermark)
-- **FastAPI** framework by [Sebastián Ramírez](https://github.com/tiangolo/fastapi)
-
----
-
-## Contact
-
-**Project Repository:** [GitHub URL]  
-**Issues:** [GitHub Issues]  
-**Email:** [Team Email]
-
----
+- **[invisible-watermark](https://github.com/ShieldMnt/invisible-watermark)** library by ShieldMnt
+- **[FastAPI](https://github.com/tiangolo/fastapi)** framework by Sebastián Ramírez
