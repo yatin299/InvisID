@@ -13,8 +13,13 @@ from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.models.schemas import HealthResponse
 from app.routers import admin, images, jobs
 from app.utils.logging import get_logger, setup_logging
+from app.services.cryptography.crypto_service import CryptoService
+from app.services.cryptography.key_manager import load_key
 
 # Initialize settings and structured logging
+key = load_key()
+crypto_service = CryptoService(key)
+
 settings = get_settings()
 setup_logging(level=settings.LOG_LEVEL)
 logger = get_logger("app.main")
